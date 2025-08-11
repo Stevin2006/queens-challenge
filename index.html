@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>8x8 Queens Challenge - Inauguration Edition</title>
+    <style>
+        :root {
+            --cell-size: 48px;
+            --gap: 4px;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1c1e2d 0%, #3c3e52 100%);
+            margin: 0;
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 95%;
+            max-width: 800px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            padding: 18px 0;
+            text-align: center;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            margin: 0 0 6px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #e8d5ff;
+            text-shadow: 0 0 10px #e8d5ff, 0 0 20px #e8d5ff;
+        }
+        .subtitle {
+            font-size: 16px;
+            color: #cfe8ff;
+            margin-bottom: 0;
+        }
+        .game {
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .board {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 18px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            position: relative;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(32px, var(--cell-size)));
+            grid-auto-rows: minmax(32px, var(--cell-size));
+            gap: var(--gap);
+            margin-bottom: 10px;
+        }
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            position: relative;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+        .cell:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 15px rgba(232, 213, 255, 0.5);
+        }
+        .cell span.symbol {
+            font-size: 28px;
+            text-shadow: 0 0 5px rgba(255,255,255,0.7);
+        }
+        .conflict {
+            outline: 3px solid rgba(255, 80, 80, 0.9);
+            background-color: rgba(255, 80, 80, 0.2);
+            z-index: 2;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 240px;
+        }
+        button {
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: 1px solid rgba(232, 213, 255, 0.5);
+            background: linear-gradient(145deg, rgba(232, 213, 255, 0.2), rgba(207, 232, 255, 0.2));
+            color: #fff;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(5px);
+        }
+        button:hover:not(:disabled) {
+            background: linear-gradient(145deg, rgba(232, 213, 255, 0.3), rgba(207, 232, 255, 0.3));
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            border-color: rgba(232, 213, 255, 0.8);
+        }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .status {
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            font-size: 16px;
+        }
+        .status strong {
+            color: #e8d5ff;
+        }
+        .meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            position: relative;
+        }
+        .meta-item {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .meta-item strong {
+            color: #cfe8ff;
+        }
+        .timer-low {
+            color: #ff4d4d !important;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); text-shadow: 0 0 5px #ff4d4d; }
+            50% { transform: scale(1.05); text-shadow: 0 0 15px #ff4d4d; }
+            100% { transform: scale(1); text-shadow: 0 0 5px #ff4d4d; }
+        }
+        .modal {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(10, 10, 20, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #2a2d3f, #4a4d62);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 500px;
+        }
+        .modal-content h2 {
+            color: #e8d5ff;
+            font-size: 2.5em;
+            margin-top: 0;
+            text-shadow: 0 0 15px #e8d5ff;
+        }
+        .modal-content p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #eee;
+        }
+        #cheatWarningModal .modal-content h2 {
+            color: #ff4d4d;
+            text-shadow: 0 0 15px #ff4d4d;
+        }
+
+        @media (max-width: 900px) {
+            .game { flex-direction: column; align-items: center; }
+            .board, .controls { width: 90%; max-width: 550px; }
+        }
+        @media (max-width: 600px) {
+            :root { --cell-size: 38px; --gap: 3px; }
+            h1 { font-size: 22px; }
+            .subtitle { font-size: 14px; }
+            .meta { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>8x8 Queens Challenge</h1>
+        <div class="subtitle">Complete 20 levels within 20 minutes!</div>
+    </header>
+
+    <div class="game">
+        <div class="board">
+            <div class="meta">
+                <div class="meta-item" id="scoreDisplay"><strong>Score:</strong> 0</div>
+                <div class="meta-item" id="levelDisplay"><strong>Level:</strong> 1 / 20</div>
+                <div class="meta-item" id="timerDisplay"><strong>Time:</strong> 20:00</div>
+            </div>
+            <div id="grid" class="grid"></div>
+            <div class="status" id="message">
+                Place one 👑 in each row, column, and colored region.
+            </div>
+        </div>
+        <div class="controls">
+            <button id="undoBtn"><span style="font-size:18px">⏪</span> Undo</button>
+            <button id="clearBtn"><span style="font-size:18px">🧹</span> Clear Board</button>
+            <button id="hintBtn"><span style="font-size:18px">💡</span> Hint (<span id="hintsLeft">3</span>)</button>
+             <div class="status">
+                <strong>Rules</strong>
+                <ul style="font-size:15px;line-height:1.6;color:#ddd;padding-left:18px;margin-top:8px;">
+                    <li>Place <b>one 👑 in each row, column, and color region</b>.</li>
+                    <li>Queens cannot touch, even diagonally.</li>
+                    <li>Solve all 20 levels before time runs out!</li>
+                    <li style="color: #ff9999;">Switching tabs will pause the game and deduct <strong>2 points</strong>. 3 strikes and you're out!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Modal -->
+    <div id="welcomeModal" class="modal visible">
+        <div class="modal-content">
+            <h2>Welcome to the Queens Challenge!</h2>
+            <p>Your goal is to solve 20 unique 8x8 Queen Puzzles.<br>You have <strong>20 minutes</strong>. For a fair experience, the game will run in fullscreen. Switching tabs will pause the game and penalize your score.</p>
+            <button id="startBtn">Start Challenge in Fullscreen</button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <h2 id="gameOverTitle">Game Over!</h2>
+            <p id="gameOverMessage">Time's up!</p>
+            <p>Your final score is: <strong id="finalScore" style="font-size: 1.5em; color: #e8d5ff;">0</strong></p>
+            <button onclick="window.location.reload()">Play Again</button>
+        </div>
+    </div>
+    
+    <!-- Anti-Cheat Warning Modal -->
+    <div id="cheatWarningModal" class="modal">
+        <div class="modal-content">
+            <h2 id="cheatWarningTitle">Warning!</h2>
+            <p id="cheatWarningMessage">You have switched tabs. The game is paused. Please remain on this page to continue the challenge.</p>
+            <button id="resumeBtn">Resume</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- ANTI-CHEAT ---
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', event => {
+            if (event.keyCode == 123 || (event.ctrlKey && event.shiftKey && (['I', 'J', 'C'].includes(event.key.toUpperCase())))) {
+                event.preventDefault();
+            }
+        });
+
+        // --- CONFIGURATION ---
+        const N = 8;
+        const NN = N * N;
+        const TOTAL_LEVELS = 20;
+        const TOTAL_TIME = 20 * 60; // 20 minutes in seconds
+        const INITIAL_HINTS = 3;
+        const CHEAT_PENALTY = 2; // Points deducted for switching tabs
+
+        // --- GAME STATE ---
+        let state = new Array(NN).fill(0);
+        let regions = [];
+        let undoStack = [];
+        let timerInterval = null;
+        let timeLeft = TOTAL_TIME;
+        let gameStarted = false;
+        let totalScore = 0;
+        let currentLevelIndex = 0;
+        let shuffledLevelOrder = [];
+        let hintsLeft = INITIAL_HINTS;
+        let isPaused = false;
+        let cheatStrikes = 0;
+
+        // --- DOM ELEMENTS ---
+        const gridEl = document.getElementById('grid');
+        const messageEl = document.getElementById('message');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const welcomeModal = document.getElementById('welcomeModal');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const cheatWarningModal = document.getElementById('cheatWarningModal');
+        const hintBtn = document.getElementById('hintBtn');
+        const hintsLeftSpan = document.getElementById('hintsLeft');
+
+        // --- 20 UNIQUE & HARD 8x8 REGION MAPS ---
+        const regionMaps = [
+            [0,0,1,1,2,2,3,3,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,4,4,5,5,6,6,7,7,4,4,5,5,6,6,7,7,4,4,5,5,6,6,7,7,0,0,1,1,2,2,3,3,0,0,1,1,2,2,3,3],
+            [0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7],
+            [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,6,6,6,6,6,6,6,6,7,7,7,7,7,7,7,7],
+            [0,0,1,1,1,2,2,2,0,3,3,1,2,4,4,2,0,3,5,5,6,6,4,2,0,3,5,7,7,6,4,2,0,3,5,5,7,6,4,2,0,3,3,1,7,6,4,2,0,0,1,1,7,6,4,2,0,0,1,1,7,6,4,2],
+            [0,1,1,1,1,1,1,2,0,3,4,4,4,4,3,2,0,3,4,5,5,4,3,2,0,3,4,5,5,4,3,2,0,3,4,6,6,4,3,2,0,3,4,4,4,4,3,2,0,3,7,7,7,7,7,2,0,0,0,0,0,0,0,2],
+            [0,0,0,1,2,3,3,3,4,5,0,1,2,6,7,3,4,5,0,1,2,6,7,3,4,5,0,1,2,6,7,3,4,5,0,1,2,6,7,3,4,5,0,1,2,6,7,3,4,5,0,1,2,6,7,3,4,5,0,1,2,6,7,3],
+            [0,1,2,3,3,2,1,0,1,2,3,0,0,3,2,1,2,3,0,1,1,0,3,2,3,0,1,2,2,1,0,3,3,0,1,2,2,1,0,3,2,3,0,1,1,0,3,2,1,2,3,0,0,3,2,1,0,1,2,3,3,2,1,0],
+            [0,0,1,2,3,4,5,5,0,1,1,2,3,4,6,5,7,7,1,2,3,4,6,5,7,1,1,2,3,4,6,5,7,0,1,2,3,4,6,5,7,0,0,2,3,4,6,5,7,0,2,2,3,4,6,5,7,0,0,0,3,4,5,5,5],
+            [0,1,2,3,4,5,6,7,1,2,3,4,5,6,7,0,2,3,4,5,6,7,0,1,3,4,5,6,7,0,1,2,4,5,6,7,0,1,2,3,5,6,7,0,1,2,3,4,6,7,0,1,2,3,4,5,7,0,1,2,3,4,5,6],
+            [0,0,0,0,1,2,2,2,3,3,4,1,1,5,6,2,3,4,4,4,5,5,6,2,3,7,7,4,1,5,6,2,3,7,4,4,1,5,6,2,3,7,7,4,1,5,6,2,3,3,4,1,1,5,6,2,0,0,0,0,1,2,2,2],
+            [0,1,2,2,3,3,4,4,0,1,1,2,3,4,4,5,0,0,1,2,3,4,5,5,6,6,1,2,3,4,5,7,6,1,1,2,3,4,5,7,6,1,2,2,3,4,5,7,6,1,2,3,3,4,5,7,6,1,2,3,4,4,5,7],
+            [0,0,1,2,3,4,5,6,0,1,1,2,3,4,5,6,0,1,2,2,3,4,5,6,0,1,2,3,3,4,5,6,0,1,2,3,4,4,5,6,0,1,2,3,4,5,5,6,0,1,2,3,4,5,6,6,7,7,7,7,7,7,7,7],
+            [0,1,2,3,4,5,6,7,7,0,1,2,3,4,5,6,6,7,0,1,2,3,4,5,5,6,7,0,1,2,3,4,4,5,6,7,0,1,2,3,3,4,5,6,7,0,1,2,2,3,4,5,6,7,0,1,1,2,3,4,5,6,7,0],
+            [0,0,0,1,1,2,3,3,4,5,1,1,2,2,3,4,4,5,5,2,3,3,4,5,6,6,5,2,3,4,4,5,6,7,6,2,3,4,5,5,6,7,7,6,2,3,4,5,6,7,7,6,2,3,4,5,6,7],
+            [0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,7,6,5,4,3,2,1,0,7,6,5,4,3,2,1,0,7,6,5,4,3,2,1,0,7,6,5,4,3,2,1,0],
+            [0,0,1,1,2,2,3,3,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,4,4,5,5,6,6,7,7,3,3,2,2,1,1,0,0,3,3,2,2,1,1,0,0,7,7,6,6,5,5,4,4,7,7,6,6,5,5,4,4],
+            [0,1,2,3,4,5,6,7,1,0,3,2,5,4,7,6,2,3,0,1,6,7,4,5,3,2,1,0,7,6,5,4,4,5,6,7,0,1,2,3,5,4,7,6,1,0,3,2,6,7,4,5,2,3,0,1,7,6,5,4,3,2,1,0],
+            [0,0,1,2,3,4,5,5,0,1,1,2,3,4,6,5,7,7,1,2,3,4,6,5,7,1,1,2,3,4,6,5,7,0,1,2,3,4,6,5,7,0,0,2,3,4,6,5,7,0,2,2,3,4,6,5,7,0,0,0,3,4,5,5,5],
+            [0,1,2,3,4,5,6,7,1,2,3,4,5,6,7,0,2,3,4,5,6,7,0,1,3,4,5,6,7,0,1,2,4,5,6,7,0,1,2,3,5,6,7,0,1,2,3,4,6,7,0,1,2,3,4,5,7,0,1,2,3,4,5,6],
+            [0,0,0,0,1,2,2,2,3,3,4,1,1,5,6,2,3,4,4,4,5,5,6,2,3,7,7,4,1,5,6,2,3,7,4,4,1,5,6,2,3,7,7,4,1,5,6,2,3,3,4,1,1,5,6,2,0,0,0,0,1,2,2,2]
+        ];
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('startBtn').addEventListener('click', () => {
+                welcomeModal.classList.remove('visible');
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+                initGame();
+            });
+            document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+            document.getElementById('undoBtn').addEventListener('click', undo);
+            document.getElementById('clearBtn').addEventListener('click', clearBoard);
+            hintBtn.addEventListener('click', useHint);
+        });
+
+        function initGame() {
+            shuffledLevelOrder = Array.from({length: TOTAL_LEVELS}, (_, i) => i)
+                                     .sort(() => Math.random() - 0.5);
+            currentLevelIndex = 0;
+            totalScore = 0;
+            timeLeft = TOTAL_TIME;
+            hintsLeft = INITIAL_HINTS;
+            updateDisplays();
+            loadLevel(currentLevelIndex);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        function loadLevel(levelIdx) {
+            const mapIndex = shuffledLevelOrder[levelIdx];
+            regions = regionMaps[mapIndex];
+            state.fill(0);
+            undoStack = [];
+            buildGrid();
+            updateAll();
+            messageEl.textContent = 'Place one 👑 in each row, column, and colored region.';
+        }
+
+        // --- ANTI-CHEAT & PAUSE LOGIC ---
+        function handleVisibilityChange() {
+            if (document.hidden && gameStarted && !isPaused) {
+                pauseGame();
+            }
+        }
+
+        function pauseGame() {
+            if (isPaused || !gameStarted) return;
+            isPaused = true;
+            clearInterval(timerInterval);
+            cheatStrikes++;
+            totalScore -= CHEAT_PENALTY;
+            updateDisplays();
+            
+            if (cheatStrikes >= 3) {
+                endGame(false, "Cheating detected. Game over.");
+                return;
+            }
+            
+            scrambleCurrentLevel();
+            document.getElementById('cheatWarningTitle').textContent = `Warning #${cheatStrikes}`;
+            document.getElementById('cheatWarningMessage').textContent = `You have switched tabs. The board has been scrambled and you lost ${CHEAT_PENALTY} points. You have ${3 - cheatStrikes} warning(s) left.`;
+            cheatWarningModal.classList.add('visible');
+        }
+        
+        function scrambleCurrentLevel() {
+            // Fisher-Yates shuffle to scramble the region colors
+            for (let i = regions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [regions[i], regions[j]] = [regions[j], regions[i]];
+            }
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            cheatWarningModal.classList.remove('visible');
+            buildGrid(); // Rebuild grid with scrambled regions
+            updateAll();
+            startTimer(true); // Resume timer
+        }
+
+
+        // --- TIMER & FEEDBACK LOGIC ---
+        function startTimer(isResuming = false) {
+            if (!isResuming) {
+                if (gameStarted) return;
+                gameStarted = true;
+            }
+            timerInterval = setInterval(() => {
+                if (isPaused) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                timeLeft--;
+                updateDisplays();
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    endGame(false, "Time's up!");
+                }
+            }, 1000);
+        }
+
+        function endGame(isWin, message = "Time's up!") {
+            clearInterval(timerInterval);
+            gameStarted = false;
+            gridEl.style.pointerEvents = 'none';
+            
+            const title = document.getElementById('gameOverTitle');
+            const msg = document.getElementById('gameOverMessage');
+            
+            if (isWin) {
+                title.textContent = 'Congratulations!';
+                msg.textContent = 'You have completed all levels!';
+            } else {
+                title.textContent = 'Game Over!';
+                msg.textContent = message;
+                if(message.includes("Cheating")) totalScore = 0;
+            }
+            document.getElementById('finalScore').textContent = totalScore;
+            gameOverModal.classList.add('visible');
+        }
+
+        // --- UI & DISPLAY ---
+        function updateDisplays() {
+            const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+            const seconds = String(timeLeft % 60).padStart(2, '0');
+            timerDisplay.innerHTML = `<strong>Time:</strong> ${minutes}:${seconds}`;
+            scoreDisplay.innerHTML = `<strong>Score:</strong> ${totalScore}`;
+            levelDisplay.innerHTML = `<strong>Level:</strong> ${currentLevelIndex + 1} / ${TOTAL_LEVELS}`;
+            
+            hintsLeftSpan.textContent = hintsLeft;
+            hintBtn.disabled = hintsLeft <= 0;
+
+            if (timeLeft < 60 && timeLeft > 0) {
+                timerDisplay.classList.add('timer-low');
+            } else {
+                timerDisplay.classList.remove('timer-low');
+            }
+        }
+        
+        function buildGrid() {
+            gridEl.innerHTML = '';
+            const regionSet = Array.from(new Set(regions));
+            let style = '';
+            for (let i = 0; i < regionSet.length; i++) {
+                // Use the golden angle to generate more distinct colors
+                let hue = Math.round((i * 137.5)) % 360;
+                style += `.r${i} { background: hsl(${hue}, 70%, 25%); border: 1px solid hsl(${hue}, 70%, 35%)}\n`;
+            }
+            let oldStyle = document.getElementById('regionColorStyles');
+            if (oldStyle) oldStyle.remove();
+            let styleEl = document.createElement('style');
+            styleEl.id = 'regionColorStyles';
+            styleEl.innerHTML = style;
+            document.head.appendChild(styleEl);
+
+            for (let i = 0; i < NN; i++) {
+                const r = Math.floor(i / N), c = i % N;
+                const regionId = regions[i];
+                const regionColorIndex = regionSet.indexOf(regionId);
+                const div = document.createElement('div');
+                div.className = `cell r${regionColorIndex}`;
+                div.dataset.idx = i;
+                div.addEventListener('click', onCellClick);
+                const span = document.createElement('span');
+                span.className = 'symbol';
+                div.appendChild(span);
+                gridEl.appendChild(div);
+            }
+        }
+
+        function updateUI() {
+            document.querySelectorAll('.cell').forEach(el => {
+                const idx = Number(el.dataset.idx);
+                const span = el.querySelector('.symbol');
+                span.textContent = state[idx] === 2 ? '👑' : (state[idx] === 1 ? 'X' : '');
+                el.classList.remove('conflict');
+            });
+        }
+
+        // --- GAME LOGIC ---
+        function onCellClick(e) {
+            if (!gameStarted) startTimer();
+            if (isPaused) return;
+            const idx = Number(e.currentTarget.dataset.idx);
+            pushUndo();
+            state[idx] = (state[idx] + 1) % 3;
+            updateAll();
+        }
+
+        function pushUndo() {
+            undoStack.push(state.slice());
+            if (undoStack.length > 50) undoStack.shift();
+        }
+
+        function undo() {
+            if (undoStack.length && !isPaused) {
+                state = undoStack.pop();
+                updateAll();
+            }
+        }
+        
+        function clearBoard() {
+            if (isPaused) return;
+            if (confirm(`Are you sure you want to clear the board?`)) {
+                pushUndo();
+                state.fill(0);
+                updateAll();
+            }
+        }
+
+        function useHint() {
+            if (hintsLeft <= 0 || !gameStarted || isPaused) return;
+
+            const emptyCells = [];
+            for(let i=0; i<NN; i++) {
+                if(state[i] === 0) emptyCells.push(i);
+            }
+            emptyCells.sort(() => Math.random() - 0.5);
+
+            for(const idx of emptyCells) {
+                const tempState = state.slice();
+                tempState[idx] = 2;
+                if(getConflicts(tempState).size === getConflicts(state).size) {
+                    hintsLeft--;
+                    state[idx] = 2;
+                    updateAll();
+                    updateDisplays();
+                    return;
+                }
+            }
+            alert("No simple hint available at the moment!");
+        }
+
+        function getConflicts(boardState = state) {
+            const conflicts = new Set();
+            const queens = [];
+            for (let i = 0; i < boardState.length; i++) {
+                if (boardState[i] === 2) queens.push(i);
+            }
+
+            for (let i = 0; i < queens.length; i++) {
+                const a = queens[i];
+                const ar = Math.floor(a / N), ac = a % N;
+                for (let j = i + 1; j < queens.length; j++) {
+                    const b = queens[j];
+                    const br = Math.floor(b / N), bc = b % N;
+                    if (Math.max(Math.abs(ar - br), Math.abs(ac - bc)) <= 1) {
+                        conflicts.add(a);
+                        conflicts.add(b);
+                    }
+                }
+            }
+            
+            const rowCount = Array(N).fill(0), colCount = Array(N).fill(0);
+            const regionCount = {};
+            for (let i = 0; i < NN; i++) {
+                if (boardState[i] === 2) {
+                    const r = Math.floor(i / N), c = i % N, reg = regions[i];
+                    rowCount[r]++;
+                    colCount[c]++;
+                    regionCount[reg] = (regionCount[reg] || 0) + 1;
+                }
+            }
+            for (let i = 0; i < NN; i++) {
+                if (boardState[i] === 2) {
+                    const r = Math.floor(i / N), c = i % N, reg = regions[i];
+                    if (rowCount[r] > 1 || colCount[c] > 1 || regionCount[reg] > 1) {
+                        conflicts.add(i);
+                    }
+                }
+            }
+            return conflicts;
+        }
+
+        function checkWinCondition() {
+            const queens = state.reduce((acc, val) => acc + (val === 2 ? 1 : 0), 0);
+            if (queens !== N) return false;
+
+            const conflicts = getConflicts();
+            if (conflicts.size > 0) return false;
+
+            const rowCount = Array(N).fill(0), colCount = Array(N).fill(0);
+            const regionSet = new Set(regions);
+            const regionCount = {};
+            regionSet.forEach(r => regionCount[r] = 0);
+
+            for (let i = 0; i < NN; i++) {
+                if (state[i] === 2) {
+                    rowCount[Math.floor(i / N)]++;
+                    colCount[i % N]++;
+                    regionCount[regions[i]]++;
+                }
+            }
+
+            const allRowsOk = rowCount.every(c => c === 1);
+            const allColsOk = colCount.every(c => c === 1);
+            const allRegionsOk = Object.values(regionCount).every(c => c === 1);
+
+            return allRowsOk && allColsOk && allRegionsOk;
+        }
+
+        function updateAll() {
+            updateUI();
+            const conflicts = getConflicts();
+            conflicts.forEach(idx => {
+                document.querySelector(`.cell[data-idx='${idx}']`).classList.add('conflict');
+            });
+
+            if (checkWinCondition()) {
+                messageEl.innerHTML = '<strong>Level Complete! +2 Points!</strong>';
+                totalScore += 2;
+                currentLevelIndex++;
+                updateDisplays();
+                
+                if (currentLevelIndex >= TOTAL_LEVELS) {
+                    setTimeout(() => endGame(true, 'You have completed all levels!'), 1500);
+                } else {
+                    setTimeout(() => loadLevel(currentLevelIndex), 1500);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
